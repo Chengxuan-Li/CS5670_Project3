@@ -37,7 +37,7 @@ def get_ncc_descriptors(img, patchsize):
             if (j - offset < 0) | (j + offset >= y):
                 normalized[i, j, :] = np.zeros_like(normalized[i, j, :])
                 continue
-            patch = img[i - offset : i + offset + 1, j - offset : j + offset + 1, :]
+            patch = img[i - offset : i + offset + 1, j - offset : j + offset + 1, :].copy()
             mean = np.mean(patch, axis=(0, 1))
             patch -= mean
             patch_flat = patch.flatten()
