@@ -24,7 +24,31 @@ def get_ncc_descriptors(img, patchsize):
     If the norm of the vector is <1e-6 before normalizing, zero out the vector.
 
     '''
-    pass
+    x, y, c = img.shape
+    offset = patchsize // 2
+
+    normalized = np.zeros((x, y, c * patchsize**2), dtype=np.float32)
+
+    for i in range(x):
+        if (i - offset < 0) | (i + offset >= x):
+            normalized[i, :, :] = np.zeros_like(normalized[i, :, :])
+            continue
+        for j in range(y):
+            if (j - offset < 0) | (j + offset >= y):
+                normalized[i, j, :] = np.zeros_like(normalized[i, j, :])
+                continue
+            patch = img[i - offset : i + offset + 1, j - offset : j + offset + 1, :]
+            mean = np.mean(patch, axis=(0, 1))
+            patch -= mean
+            patch_flat = patch.flatten()
+            norm = np.linalg.norm(patch_flat)
+            if norm > 1e-6:
+                patch_flat /= norm
+            else:
+                patch_flat = np.zeros_like(patch_flat)
+            normalized[i, j, :] = patch_flat
+    return normalized
+    
 
 
 def compute_ncc_vol(img_right, img_left, patchsize, dmax):
@@ -45,7 +69,20 @@ def compute_ncc_vol(img_right, img_left, patchsize, dmax):
 
     Your code should call get_ncc_descriptors to compute the descriptors once.
     '''
-    pass
+    left_ncc = get_ncc_descriptors(img_left, patchsize)
+    right_ncc = get_ncc_descriptors(img_right, patchsize)
+    h, w, _ = img_left.shape
+    ncc_vol = np.zeros((dmax, h, w), dtype=np.float32)
+    for d in range(dmax):
+        for i in range(h):
+            for j in range(w):
+                if (j + d) >= w:
+                    ncc_vol[d, i, j] = 0
+                    continue
+                left_patch = left_ncc[i, j + d, :]
+                right_patch = right_ncc[i, j, :]
+                ncc_vol[d, i, j] = np.dot(left_patch, right_patch)
+    return ncc_vol
 
 def get_disparity(ncc_vol):
     '''
@@ -57,7 +94,8 @@ def get_disparity(ncc_vol):
 
     the chosen disparity for each pixel should be the one with the largest score for that pixel
     '''
-    pass
+    disparity = np.argmax(ncc_vol, axis=0)
+    return disparity
 
 
 
