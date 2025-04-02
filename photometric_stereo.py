@@ -8,7 +8,7 @@ import numpy as np
 
 def photometric_stereo_singlechannel(I, L):
     #L is 3 x k
-    #I is k x n
+    #I is k x n (k lights, n pixels)
     G = np.linalg.inv(L @ L.T) @ L @ I
     # G is  3 x n 
     albedo = np.sqrt(np.sum(G*G, axis=0))
@@ -34,7 +34,24 @@ def photometric_stereo(images, lights):
         and renormalize so that they are unit norm
 
     '''
-    pass
+    h, w, c = images[0].shape
+    _, n_lights = lights.shape
+
+    albedo = np.zeros((h, w, c))
+    normals = np.zeros((h, w, c))
+    
+    for channel in range(c):
+        I = np.zeros((n_lights, h*w))
+        for i in range(n_lights):
+            I[i] = images[i][:, :, channel].flatten()
+        L = lights
+        channel_albedo, channel_normals = photometric_stereo_singlechannel(I, L)
+        albedo[:, :, channel] = channel_albedo.reshape((h, w))
+        normals[:, :, :] += channel_normals.T.reshape((h, w, 3)) / c
+        
+    normals /= np.linalg.norm(normals, axis=2, keepdims=True)
+
+    return albedo, normals
 
 
 
